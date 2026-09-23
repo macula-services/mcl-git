@@ -40,6 +40,10 @@ services:
       # Every seed pairs with its station's node id, index for index.
       - MACULA_STATION_SEEDS=${MACULA_STATION_SEEDS:?set MACULA_STATION_SEEDS to "host[:port][,host[:port]...]"}
       - MACULA_STATION_NODE_IDS=${MACULA_STATION_NODE_IDS:?set MACULA_STATION_NODE_IDS to the matching 64-hex node ids}
+      # The boot claim's labels: the realm's operator sees which service on
+      # which box is asking to be admitted.
+      - MCL_SERVICE_NAME=mcl-git
+      - MCL_BOX=${MCL_BOX:?set MCL_BOX to the name of the host this runs on}
       - MCL_NODE_NAME=mcl_git
       - MCL_NODE_HOST=127.0.0.1
       - MCL_COOKIE=mcl_git

@@ -34,10 +34,6 @@ jobs:
                 {<<"28.4.3">>, true} -> halt(0);
                 _                    -> halt(1)
             end.'
-      # rocksdb's CMake detects each codec with find_package() and silently
-      # drops one it cannot find, so the build goes green and the store then
-      # fails to open. Install all four.
-      - run: apt-get update && apt-get install -y --no-install-recommends libsnappy-dev liblz4-dev libzstd-dev libbz2-dev
       - run: rebar3 lint
       - run: rebar3 as test eunit
       - run: rebar3 dialyzer

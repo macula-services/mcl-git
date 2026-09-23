@@ -101,6 +101,19 @@ the_image_puts_the_remote_helper_on_path_test() ->
     ?assertMatch({match, _}, re:run(read("Containerfile"), <<"COPY rel \\./rel\\n[^F]*RUN rebar3 as prod release">>)),
     ?assertNotEqual(nomatch, binary:match(read("rebar.config"), <<"\"bin/git-remote-mesh\"">>)).
 
+%% mcl_om 0.27 dropped barrel_docdb and with it rocksdb, whose C++ build
+%% every image, CI run and local test paid for. Nothing here may bring it back.
+no_rocksdb_anywhere_test() ->
+    ?assertEqual(non_existing, code:which(rocksdb)),
+    ?assertEqual(non_existing, code:which(barrel_docdb)),
+    [?assertEqual(nomatch, re:run(read(F), <<"(?i)rocksdb|snappy|lz4|zstd">>, [{capture, none}]), F)
+     || F <- ["Containerfile", ".github/workflows/lint.yml"]].
+
+%% The boot claim is labelled, so the realm's operator can tell which box asks.
+the_claim_is_labelled_test() ->
+    ?assertNotEqual(nomatch, binary:match(read("Containerfile"), <<"ENV MCL_SERVICE_NAME=mcl-git">>)),
+    ?assertNotEqual(nomatch, binary:match(read("deploy/docker-compose.yml"), <<"MCL_BOX=${MCL_BOX:?">>)).
+
 %%==============================================================================
 %% One OTP, pinned in every place that picks one
 %%==============================================================================

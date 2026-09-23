@@ -5,6 +5,14 @@ Versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- mcl_om `~> 0.27`, which has no barrel_docdb and so no rocksdb. The image and CI
+  no longer install rocksdb's build or runtime packages.
+- The boot claim carries `MCL_SERVICE_NAME` (`mcl-git`, set in the image) and
+  `MCL_BOX` (required by the compose file), so the realm's Providers desk shows
+  which host asks.
+
 ### Added
 
 - Git over the mesh on macula 12, recuperated from hecate-daemon's

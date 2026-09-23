@@ -80,8 +80,10 @@ it. A container that runs the helper needs that file on a volume.
 name and key, the initiators, the pinned station seeds, and two volumes. One
 volume holds the node identity. The other, `/data`, holds the event store with
 the repositories beside it under `/data/repos`. `/health` is on port **8471**.
-The realm must admit the node's org `mcl-git` before its procedures can be
-called.
+The node's boot claim is labelled with `MCL_SERVICE_NAME` (`mcl-git`) and
+`MCL_BOX` (the host it runs on), so the realm's operator sees which box is
+asking. The realm must admit the node's org `mcl-git` before its procedures
+can be called.
 
 ## Layout
 

@@ -3,7 +3,7 @@ rebar.lock
 *.beam
 erl_crash.dump
 
-# Runtime store data (rocksdb/barrel write a default dir during tests).
+# Runtime store data a test may leave behind.
 data/
 _checkouts/
 rebar3.crashdump

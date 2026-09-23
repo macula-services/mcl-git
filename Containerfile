@@ -15,10 +15,9 @@ WORKDIR /build
 # fetching a prebuilt binary linked against glibc, which loads on the build
 # host and fails on alpine at runtime.
 #
-# openssl-dev/zstd-dev/snappy-dev/lz4-dev: rocksdb (via barrel_docdb) and
-# khepri/ra come in through mcl_om unconditionally.
-RUN apk add --no-cache git curl bash build-base cmake perl linux-headers \
-        openssl-dev zstd-dev snappy-dev lz4-dev
+# No database NIF: mcl_om 0.27 dropped barrel_docdb, and mcl-git has no read model
+# of its own that would bring it back.
+RUN apk add --no-cache git curl bash build-base cmake perl linux-headers
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
         | sh -s -- -y --default-toolchain stable --profile minimal
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -52,11 +51,7 @@ LABEL org.opencontainers.image.source="https://github.com/macula-services/mcl-gi
 # receive-pack'. Without it each clone, fetch and push answers `git_failed'
 # while /health stays green. Neither image this was ported from installed it:
 # hecate-daemon's clone over the mesh only ever ran natively.
-#
-# zstd-libs/snappy/lz4-libs: the runtime libraries for rocksdb's compression,
-# built against above; missing, the node exits at boot on the NIF load.
-RUN apk add --no-cache git ncurses-libs libstdc++ libgcc openssl ca-certificates curl \
-        zstd-libs snappy lz4-libs
+RUN apk add --no-cache git ncurses-libs libstdc++ libgcc openssl ca-certificates curl
 WORKDIR /app
 COPY --from=builder /build/_build/prod/rel/mcl_git ./
 
@@ -65,6 +60,9 @@ ENV HOME=/app
 ENV PATH="/app/bin:${PATH}"
 ENV RELX_REPLACE_OS_VARS=true
 
+# The boot claim's labels on the realm's Providers desk. MCL_BOX is the host
+# that runs it, set where it is deployed.
+ENV MCL_SERVICE_NAME=mcl-git
 ENV MCL_NODE_NAME=mcl_git
 ENV MCL_NODE_HOST=127.0.0.1
 ENV MCL_COOKIE=mcl_git
