@@ -1,0 +1,10 @@
+{application, serve_git_over_mesh, [
+    {description, "Bare repositories on disk, served over the mesh through git upload-pack and receive-pack"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [kernel, stdlib, macula, mcl_om, git_wire, project_repos, guide_repo_lifecycle]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

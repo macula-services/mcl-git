@@ -1,0 +1,11 @@
+{application, guide_repo_lifecycle, [
+    {description, "CMD: the repository lifecycle for mcl-git"},
+    {vsn, "0.1.0"},
+    {registered, [guide_repo_lifecycle_sup]},
+    {mod, {guide_repo_lifecycle_app, []}},
+    {applications, [kernel, stdlib, crypto, macula, mcl_om, evoq, reckon_evoq, reckon_gater]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

@@ -1,0 +1,10 @@
+{application, git_remote_mesh, [
+    {description, "git-remote-mesh: the git remote helper that clones, fetches and pushes mesh://<realm>/<repo_id> through mcl-git"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [kernel, stdlib, crypto, macula, git_wire]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

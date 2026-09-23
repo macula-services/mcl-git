@@ -1,0 +1,54 @@
+# mcl-git: how to run this service.
+#
+# It carries what the SERVICE knows about itself: its image, its port, the
+# environment its code reads, its volumes and its health check. PLACEMENT
+# (which box, which station, which realm, which secrets) belongs to whatever
+# deploys it; for the fleet that is macula-fleet, which pins a release.
+#
+#   MCL_REALM=<64-hex> MCL_REALM_NAME=io.macula MCL_REALM_KEY=<hex> \
+#     MCL_GIT_INITIATORS=<64-hex node id>[,...] \
+#     MACULA_STATION_SEEDS=station.example:4433 \
+#     MACULA_STATION_NODE_IDS=<64-hex node id of that station> \
+#     docker compose -p mcl-git -f deploy/docker-compose.yml up -d
+
+services:
+  mcl-git:
+    image: ghcr.io/macula-services/mcl-git:${MCL_GIT_VERSION:?set MCL_GIT_VERSION to a released version, e.g. 0.1.0}
+    container_name: mcl-git
+    restart: unless-stopped
+    # Host networking: macula stations are reachable over IPv6, and a default
+    # bridge has none, so a bridged container connects and then sits there
+    # with no healthy links, looking fine.
+    network_mode: host
+    volumes:
+      # ⚠ THE NODE IDENTITY. Generated on first boot, loaded on every boot
+      # after. It is the node the realm admits and grants the procedures to.
+      - secrets:/etc/mcl/secrets
+      # ⚠ THE EVENT STORE AND EVERY REPOSITORY. Without this mount a container
+      # recreate loses all of them. On a bulk drive, never a node's eMMC root.
+      - ${MCL_DATA:-/bulk0/mcl-git}:/data
+    environment:
+      - MCL_REALM=${MCL_REALM:?set MCL_REALM to the 64-hex realm tag}
+      # The same realm by NAME: the push announcements' topic carries it, and
+      # the service refuses to start unless sha256 of it is MCL_REALM.
+      - MCL_REALM_NAME=${MCL_REALM_NAME:?set MCL_REALM_NAME to the realm name, e.g. io.macula}
+      # The realm's public signing key, hex: the trust anchor, public material.
+      - MCL_REALM_KEY=${MCL_REALM_KEY:?set MCL_REALM_KEY to the hex-encoded public realm signing key}
+      # Who may initiate a repository here (node ids, hex, comma-separated).
+      # Every repository is a directory on this disk: empty admits nobody.
+      - MCL_GIT_INITIATORS=${MCL_GIT_INITIATORS:-}
+      # Every seed pairs with its station's node id, index for index.
+      - MACULA_STATION_SEEDS=${MACULA_STATION_SEEDS:?set MACULA_STATION_SEEDS to "host[:port][,host[:port]...]"}
+      - MACULA_STATION_NODE_IDS=${MACULA_STATION_NODE_IDS:?set MACULA_STATION_NODE_IDS to the matching 64-hex node ids}
+      - MCL_NODE_NAME=mcl_git
+      - MCL_NODE_HOST=127.0.0.1
+      - MCL_COOKIE=mcl_git
+      # Host networking: a port already bound on this host fails SILENTLY.
+      - MCL_HEALTH_PORT=8471
+      - MCL_DATA_DIR=/data
+
+# Named here, so a `-p' with another project name reuses the same identity
+# instead of quietly minting a second one. Deleting it retires the node id.
+volumes:
+  secrets:
+    name: mcl-git-secrets

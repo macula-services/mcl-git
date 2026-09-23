@@ -1,0 +1,10 @@
+{application, git_wire, [
+    {description, "The git smart protocol as mcl-git speaks it on both ends: pkt-line framing, protocol v2 ls-refs and fetch, receive-pack requests and reports, and running git without a shell"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [kernel, stdlib]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

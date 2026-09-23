@@ -1,0 +1,50 @@
+%% Substituted by relx at boot; every ${VAR} must resolve or the node does not
+%% start. That is the right failure: a half-configured service announces itself
+%% where nobody can attribute it, which looks exactly like a healthy node.
+[
+    {guide_repo_lifecycle, [
+        %% The realm by NAME, which the push announcements' topic carries.
+        %% The service refuses to start unless sha256 of it is MCL_REALM.
+        {realm_name, "${MCL_REALM_NAME}"},
+        %% The node ids (hex, comma-separated) allowed to initiate a repository
+        %% here. Every repository is a directory on this node's disk, so this
+        %% is fail-closed: empty admits nobody.
+        {initiators, "${MCL_GIT_INITIATORS}"}
+    ]},
+    {serve_git_over_mesh, [
+        %% The bare repositories, beside the event store on the data volume.
+        {repo_root, "${MCL_DATA_DIR}/repos"}
+    ]},
+    {mcl_om, [
+        %% The node identity, on the mounted secrets volume. Without it the
+        %% service runs on an ephemeral identity that cannot sign, and no
+        %% procedure is ever advertised.
+        {identity_key_path, "/etc/mcl/secrets/identity.key"},
+        {health_port,       ${MCL_HEALTH_PORT}},
+        {capability_topic,  <<"_mesh.cap.">>},
+        %% The wire namespace: every procedure is `mcl-git/<name>'. One org per
+        %% service, named after the repository; the realm binds it at admission.
+        {org,               <<"mcl-git">>},
+        {service_name,      <<"mcl-git">>},
+        %% The realm tag (sha256 of the realm name, 64 hex) and, a different
+        %% thing, the realm's public signing key: the trust anchor every
+        %% org-namespaced advertisement is checked against.
+        {realm,             <<"${MCL_REALM}">>},
+        {realm_key,         <<"${MCL_REALM_KEY}">>}
+    ]},
+    %% ⚠ MANDATORY. Without it macula boots on the classical profile and every
+    %% post-quantum station refuses the handshake, forever, silently. No
+    %% `puzzle_difficulty': macula 12 fixes it fleet-wide and refuses a setting.
+    {macula, [
+        {crypto_profile, pq_hybrid}
+    ]},
+    %% ⚠ MANDATORY because this service opens a store: evoq starts at release
+    %% boot and crashes on {not_configured, event_store_adapter} without it.
+    {evoq, [
+        {event_store_adapter,    reckon_evoq_adapter},
+        {subscription_adapter,   reckon_evoq_adapter},
+        {snapshot_store_adapter, reckon_evoq_adapter},
+        {store_id,               mcl_git_store}
+    ]},
+    {kernel, [{logger_level, info}]}
+].

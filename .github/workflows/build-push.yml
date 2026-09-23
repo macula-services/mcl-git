@@ -1,0 +1,95 @@
+# Build the OCI image for mcl-git and push it to ghcr.io.
+#
+# TWO CHANNELS, AND A TAG PUSH MUST NOT TOUCH THE FIRST ONE.
+#
+#   push to main : publishes :latest
+#   push of v*   : publishes :<semver> ONLY, the release a fleet pins
+#
+# Publishing is not deploying. No box runs mcl-git; a box that does will pin a
+# release in macula-fleet, and moving that pin is a commit, not a registry
+# event. A tag publishes its own semver and nothing else, so cutting a release
+# never swaps an image under anything watching :latest.
+#
+# ⚠ An HTTPS push that touches .github/workflows/ needs a token with the
+# `workflow' scope; push over SSH.
+
+name: build-and-push
+
+on:
+  push:
+    branches: [main]
+    tags:     ['v*']
+    # ⚠ THE TAG BUILD STILL RUNS. Checked empirically rather than from the
+    # docs, which do not say: GitHub's `on.push` reference states only that
+    # filters combine with AND and is silent on whether path filters are
+    # evaluated for tag pushes. If they were, this block would silently
+    # suppress the SEMVER build on a release tag and take out the rollback
+    # archive -- a worse and quieter failure than the one it prevents.
+    #
+    # macula-io/macula-station's `ci.yml` carries this exact shape, `branches`
+    # and `tags` and `paths-ignore` in one `push` block, and every tag push in
+    # its history triggers it, v0.4.0 through v0.5.0.
+    #
+    # WHAT THAT EVIDENCE DOES NOT COVER, so nobody reads it as more than it is:
+    # every one of those tags points at a commit that touched code. It proves a
+    # tag push fires DESPITE `paths-ignore` being present, which is the case
+    # that matters and the one release tags are. It does NOT isolate a tag cut
+    # on a commit touching only `.md` files -- if path filters were evaluated
+    # for tag pushes, that one tag would be suppressed and this history would
+    # look identical, because none of it tests that. Judged not worth chasing:
+    # release tags are cut on code, and the common case is proven.
+    #
+    # Re-check this if GitHub ever changes that behaviour, because the failure
+    # mode is a release that quietly publishes no image.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+  workflow_dispatch:
+
+# ONE IMAGE BUILD IN FLIGHT PER REF. Every push to main builds and pushes
+# :latest; without this, three quick commits run three builds that finish in
+# whatever order the runners please, and :latest ends up being whichever
+# finished LAST, not whichever was pushed last -- watchtower then rolls the
+# fleet onto an older commit and flaps. hecate-rag hit exactly that live.
+concurrency:
+  group: build-and-push-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to the registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Emits the COMPLETE tag list, not a fragment of one. The previous
+      # shape computed a single variable and pasted it beside a hardcoded
+      # :latest, which is what made a tag push move :latest: the condition
+      # governed only half the list.
+      - name: Set tags
+        id: tag
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "tags=ghcr.io/macula-services/mcl-git:${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=ghcr.io/macula-services/mcl-git:latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Containerfile
+          push: true
+          tags: ${{ steps.tag.outputs.tags }}

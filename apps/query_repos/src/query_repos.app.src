@@ -1,0 +1,10 @@
+{application, query_repos, [
+    {description, "QRY: repository lookups over the mesh for mcl-git"},
+    {vsn, "0.1.0"},
+    {registered, []},
+    {applications, [kernel, stdlib, macula, mcl_om, project_repos, guide_repo_lifecycle]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

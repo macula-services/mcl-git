@@ -1,0 +1,11 @@
+{application, project_repos, [
+    {description, "PRJ: the repos read model for mcl-git, and who may read or change a repo"},
+    {vsn, "0.1.0"},
+    {registered, [project_repos_sup, project_repos_store]},
+    {mod, {project_repos_app, []}},
+    {applications, [kernel, stdlib, mcl_om, evoq]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, []}
+]}.

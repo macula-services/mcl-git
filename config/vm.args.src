@@ -1,0 +1,9 @@
+## Node identity and runtime flags for mcl_git.
+-name ${MCL_NODE_NAME}@${MCL_NODE_HOST}
+-setcookie ${MCL_COOKIE}
+
++K true
+
+## Every clone, fetch and push runs git as a port and moves its bytes
+## through files, so this service does real file and port I/O.
++A 16

@@ -1,0 +1,12 @@
+{application, mcl_git, [
+    {description, "Git over the mesh: bare repositories cloned, fetched and pushed through org-namespaced mesh procedures"},
+    {vsn, "0.1.0"},
+    {registered, [mcl_git_sup]},
+    {mod, {mcl_git_app, []}},
+    {applications, [kernel, stdlib, crypto, mcl_om, guide_repo_lifecycle, project_repos,
+                    query_repos, serve_git_over_mesh]},
+    {env, []},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, [{"GitHub", "https://github.com/macula-services/mcl-git"}]}
+]}.
