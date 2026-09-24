@@ -155,6 +155,11 @@ can be called.
   gives up on them (`handler_timeout_ms`, macula 12.2), and the helper waits
   330 s for an answer. git stops first (`git_timeout`), so a caller always
   hears the real outcome.
+- **About 60 s per clone or push through a station, until macula-station
+  0.6.2 is on the fleet.** macula-station 0.6.1 holds a relayed call for 60 s
+  and then drops its reply without telling the caller. A longer run still
+  completes on the server, so a push lands, but the caller sees a timeout at
+  330 s.
 - **At most 8 git processes per node.** Beyond that a call gets `busy`.
 - **The owner may force-push and delete refs.** The server leaves
   `receive.denyNonFastForwards` and `receive.denyDeletes` at git's defaults.
