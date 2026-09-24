@@ -113,11 +113,10 @@ refused_push_records_nothing(#{work := Work, head := Head}) ->
     ?assertMatch({ok, [{<<"refs/heads/main">>, {error, _}}]}, git_push:parse_report(Report)),
     ?assertNot(meck:called(maybe_advance_refs, dispatch, '_')).
 
-%% macula_response gives a handler 30 s, fixed, and answers
-%% temporary_relay_failure past it while the handler runs on. git must stop
-%% first, so a caller always hears the real outcome.
+%% git stops before its procedure's handler deadline, so a caller always
+%% hears the real outcome, never temporary_relay_failure for a push that landed.
 git_stops_before_the_mesh_gives_up_test() ->
-    ?assert(bare_repo:timeout_ms() < 30000).
+    ?assert(bare_repo:timeout_ms() < mcl_git_service:git_handler_timeout_ms()).
 
 %% A node runs a bounded number of git processes; past it a call is refused
 %% as busy instead of queueing another git.

@@ -8,11 +8,11 @@
 
 -export([ensure/2, refs/1, git/3, timeout_ms/0]).
 
-%% ⚠ UNDER 30 s, BECAUSE macula_response IS. It gives a handler 30 s, fixed,
-%% then answers the caller `temporary_relay_failure' while the handler runs
-%% on: a push that took 31 s would move the refs and still be reported failed.
-%% git stops first, so the caller always hears the real outcome.
--define(TIMEOUT_MS, 25000).
+%% Under the git procedures' handler deadline (mcl_git_service:
+%% git_handler_timeout_ms/0, 300 s): past that macula answers the caller
+%% `temporary_relay_failure' while the handler runs on, so a push could land
+%% and be reported failed. git stops first; the caller hears the real outcome.
+-define(TIMEOUT_MS, 270000).
 %% One mesh frame carries 16 MiB; stop collecting well before.
 -define(MAX_STDOUT, 15 * 1024 * 1024).
 

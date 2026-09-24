@@ -49,3 +49,33 @@ the_process_manager_publishes_the_event_test() ->
     after
         meck:unload(refs_fact)
     end.
+
+%% Through mcl_om_pubsub, which runs the publisher under a watcher. A
+%% publisher linked to the process manager (macula_publisher:start_link)
+%% whose announcement fails takes the process manager down with it
+%% under macula 12.2.
+the_fact_is_published_through_mcl_om_pubsub_test() ->
+    application:set_env(guide_repo_lifecycle, realm_name, "io.macula"),
+    meck:new(mcl_om_pubsub, [non_strict]),
+    meck:expect(mcl_om_pubsub, publish, fun(_Topic, _Fact) -> ok end),
+    try
+        Data = #{repo_id => ?REPO, pusher => ?OWNER, advances => [], advanced_at => 1},
+        ?assertEqual(ok, refs_fact:publish(Data)),
+        ?assert(meck:called(mcl_om_pubsub, publish,
+                            [<<"io.macula/mcl-git/git/repos/refs_advanced_v1">>, refs_fact:fact(Data)]))
+    after
+        meck:unload(mcl_om_pubsub),
+        application:unset_env(guide_repo_lifecycle, realm_name)
+    end.
+
+a_failed_publish_is_logged_not_raised_test() ->
+    application:set_env(guide_repo_lifecycle, realm_name, "io.macula"),
+    meck:new(mcl_om_pubsub, [non_strict]),
+    meck:expect(mcl_om_pubsub, publish, fun(_, _) -> {error, mesh_unavailable} end),
+    try
+        ?assertEqual(ok, refs_fact:publish(#{repo_id => ?REPO, pusher => ?OWNER,
+                                             advances => [], advanced_at => 1}))
+    after
+        meck:unload(mcl_om_pubsub),
+        application:unset_env(guide_repo_lifecycle, realm_name)
+    end.

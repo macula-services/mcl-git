@@ -14,9 +14,11 @@
 
 -export([connect/1, call/3, initiate/2]).
 %% The pieces with no network in them, exported for their tests.
--export([seeds/0, realm_key/0, reply/1, repo_id/1]).
+-export([seeds/0, realm_key/0, reply/1, repo_id/1, call_timeout_ms/0]).
 
--define(CALL_TIMEOUT_MS, 300000).
+%% After the server's handler deadline (300 s, mcl_git_service), so a slow
+%% git run reaches the caller as its real outcome, never as a local timeout.
+-define(CALL_TIMEOUT_MS, 330000).
 -define(HEALTHY_WAIT_MS, 30000).
 
 -spec connect(#{realm_name := binary(), _ => _}) -> {ok, {pid(), binary()}} | {error, term()}.
@@ -44,6 +46,9 @@ ready({ok, #{healthy_links := H}}, _Pool, _N) when H > 0 -> ok;
 ready(_Status, Pool, N) ->
     timer:sleep(100),
     wait_healthy(Pool, N - 1).
+
+-spec call_timeout_ms() -> pos_integer().
+call_timeout_ms() -> ?CALL_TIMEOUT_MS.
 
 -spec call({pid(), binary()}, binary(), map()) -> {ok, map()} | {error, term()}.
 call({Pool, Realm}, Procedure, Payload) ->

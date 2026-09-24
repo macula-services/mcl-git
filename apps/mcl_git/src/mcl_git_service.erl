@@ -18,9 +18,11 @@
 %% store id is named here AND in the `evoq' block of config/sys.config.src,
 %% and mcl_git_service_tests checks that the two agree.
 -export([store_id/0, data_dir/0]).
+-export([git_handler_timeout_ms/0]).
 
 %% How many git processes run at once on this node (see git_slots).
 -define(GIT_SLOTS, 8).
+-define(GIT_HANDLER_TIMEOUT_MS, 300000).
 
 info() ->
     #{name => <<"mcl-git">>,
@@ -48,11 +50,24 @@ capabilities() ->
      procedure(<<"get_repo_by_id">>, get_repo_by_id_responder),
      procedure(<<"list_repos_by_owner">>, list_repos_by_owner_responder),
      procedure(<<"search_repos_by_tag">>, search_repos_by_tag_responder),
-     procedure(<<"upload_pack">>, upload_pack_responder),
-     procedure(<<"receive_pack">>, receive_pack_responder)].
+     git_procedure(<<"upload_pack">>, upload_pack_responder),
+     git_procedure(<<"receive_pack">>, receive_pack_responder)].
 
 procedure(Name, Handler) ->
     #{name => Name, version => 1, handler => {Handler, []}, auth => open}.
+
+%% A git procedure runs git, so it waits longer than macula's 30 s default
+%% before the mesh gives up on it (see git_handler_timeout_ms/0).
+git_procedure(Name, Handler) ->
+    (procedure(Name, Handler))#{handler_timeout_ms => ?GIT_HANDLER_TIMEOUT_MS}.
+
+%% @doc How long macula waits for upload_pack and receive_pack before
+%% answering the caller `temporary_relay_failure'. The three deadlines are
+%% ordered so each layer gives up after the one below it: git (bare_repo,
+%% 270 s), then this handler (300 s), then the caller (git_remote_macula,
+%% 330 s). A caller therefore always hears git's real outcome.
+-spec git_handler_timeout_ms() -> pos_integer().
+git_handler_timeout_ms() -> ?GIT_HANDLER_TIMEOUT_MS.
 
 %% The authority is the realm's per-procedure provider grant, not a UCAN this
 %% service asks for, so it asks for nothing beyond its scope.

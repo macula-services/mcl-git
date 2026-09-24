@@ -49,6 +49,28 @@ every_procedure_is_request_reply_and_open_test() ->
          ?assert(lists:member(macula_response, behaviours(M)))
      end || C <- ?SERVICE:capabilities()].
 
+%% The git procedures run git, which takes longer than a lookup: macula 12.2
+%% (mcl_om 0.28) lets each one wait longer than the default 30 s. The three
+%% deadlines are ordered so each layer gives up after the one below it:
+%% git, then the handler, then the caller.
+the_git_procedures_wait_for_git_test() ->
+    Timeouts = maps:from_list([{N, maps:get(handler_timeout_ms, C, default)}
+                               || #{name := N} = C <- ?SERVICE:capabilities()]),
+    Git = mcl_git_service:git_handler_timeout_ms(),
+    ?assertEqual(Git, maps:get(<<"upload_pack">>, Timeouts)),
+    ?assertEqual(Git, maps:get(<<"receive_pack">>, Timeouts)),
+    ?assertEqual([default], lists:usort([T || {N, T} <- maps:to_list(Timeouts),
+                                              N =/= <<"upload_pack">>, N =/= <<"receive_pack">>])),
+    ?assert(Git > 30000),
+    ?assert(Git =< 600000),
+    ?assert(bare_repo:timeout_ms() < Git),
+    ?assert(git_remote_macula:call_timeout_ms() > Git).
+
+the_mcl_om_that_carries_handler_timeouts_is_required_test() ->
+    Config = read("rebar.config"),
+    ?assertNotEqual(nomatch, binary:match(Config, <<"{mcl_om, \"~> 0.28\"}">>)),
+    ?assertNotEqual(nomatch, binary:match(Config, <<"{macula, \"~> 12.2\"}">>)).
+
 behaviours(M) ->
     lists:append([B || {behaviour, B} <- M:module_info(attributes)]).
 

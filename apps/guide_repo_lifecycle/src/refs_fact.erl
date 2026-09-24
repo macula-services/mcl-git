@@ -29,17 +29,18 @@ advance(A) ->
       old_oid => {text, field(old_oid, A)},
       new_oid => {text, field(new_oid, A)}}.
 
-%% @doc Fire and forget. A node whose mesh is not up has nobody to tell.
+%% @doc Fire and forget, through mcl_om_pubsub, which runs the publisher under
+%% a watcher: a publisher whose announcement fails must not take the process
+%% manager that published with it (macula 12.2 fails it after the start).
+%% A publish that does not go out is logged; nobody is waiting on it.
 -spec publish(map()) -> ok.
 publish(Data) ->
-    published(mcl_om:mesh_handles(), Data).
+    published(mcl_om_pubsub:publish(topic(realm_name()), fact(Data)), Data).
 
-published({ok, Pool, Realm}, Data) ->
-    {ok, _Pid} = macula_publisher:start_link(refs_fact_publisher, Pool, Realm,
-                                             topic(realm_name()), fact(Data), []),
+published(ok, _Data) ->
     ok;
 published({error, Why}, Data) ->
-    logger:warning("[mcl_git] refs of ~s advanced but the mesh is unavailable (~p): not announced",
+    logger:warning("[mcl_git] refs of ~s advanced but the announcement did not go out: ~p",
                    [field(repo_id, Data), Why]),
     ok.
 

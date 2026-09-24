@@ -151,10 +151,10 @@ can be called.
   everything. The server stops git at 15 MiB and answers `pack_too_large`.
   A push whose commands and pack exceed a frame is refused by macula before
   it reaches the server. There is no streamed fetch or push yet.
-- **25 s per git run.** macula 12's `macula_response` gives a handler 30 s,
-  a fixed value, and after that tells the caller `temporary_relay_failure`
-  while the handler keeps running. The server stops git at 25 s
-  (`git_timeout`), so a caller always hears the real outcome.
+- **270 s per git run.** The git procedures wait 300 s before the mesh
+  gives up on them (`handler_timeout_ms`, macula 12.2), and the helper waits
+  330 s for an answer. git stops first (`git_timeout`), so a caller always
+  hears the real outcome.
 - **At most 8 git processes per node.** Beyond that a call gets `busy`.
 - **The owner may force-push and delete refs.** The server leaves
   `receive.denyNonFastForwards` and `receive.denyDeletes` at git's defaults.

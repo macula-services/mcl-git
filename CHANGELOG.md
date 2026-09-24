@@ -7,6 +7,11 @@ Versioning: [SemVer](https://semver.org/).
 
 ### Changed
 
+- mcl_om `~> 0.28`, macula `~> 12.2`. `upload_pack` and `receive_pack` declare
+  `handler_timeout_ms` 300000, so a git run may take 270 s (was 25 s, under
+  macula's fixed 30 s). The helper waits 330 s.
+- The push announcement is published through `mcl_om_pubsub`, whose watcher
+  keeps a failed announcement from taking the process manager down with it.
 - mcl_om `~> 0.27`, which has no barrel_docdb and so no rocksdb. The image and CI
   no longer install rocksdb's build or runtime packages.
 - The boot claim carries `MCL_SERVICE_NAME` (`mcl-git`, set in the image) and
