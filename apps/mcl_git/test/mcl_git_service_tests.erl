@@ -99,7 +99,10 @@ the_image_puts_the_remote_helper_on_path_test() ->
     ?assert(filelib:is_regular(alongside("rel/overlay/bin/git-remote-mesh"))),
     %% relx copies the launcher from rel/, so the image build must have it.
     ?assertMatch({match, _}, re:run(read("Containerfile"), <<"COPY rel \\./rel\\n[^F]*RUN rebar3 as prod release">>)),
-    ?assertNotEqual(nomatch, binary:match(read("rebar.config"), <<"\"bin/git-remote-mesh\"">>)).
+    ?assertNotEqual(nomatch, binary:match(read("rebar.config"), <<"\"bin/git-remote-mesh\"">>)),
+    %% and `git mesh' (whoami, init) beside it.
+    ?assert(filelib:is_regular(alongside("rel/overlay/bin/git-mesh"))),
+    ?assertNotEqual(nomatch, binary:match(read("rebar.config"), <<"\"bin/git-mesh\"">>)).
 
 %% mcl_om 0.27 dropped barrel_docdb and with it rocksdb, whose C++ build
 %% every image, CI run and local test paid for. Nothing here may bring it back.

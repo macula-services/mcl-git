@@ -15,6 +15,9 @@ Versioning: [SemVer](https://semver.org/).
 
 ### Added
 
+- `git mesh` (bin/git-mesh). `git mesh whoami` prints this machine's node id.
+  `git mesh init <name>` initiates a repository as that node and prints its
+  `mesh://` URL. The README walks from zero to `git clone mesh://`.
 - Git over the mesh on macula 12, recuperated from hecate-daemon's
   git-over-mesh apps.
 - Nine procedures under `mcl-git`: `initiate_repo`, `rename_repo`,

@@ -1,0 +1,26 @@
+#!/bin/sh
+# git-mesh: git runs this for `git mesh <command>':
+#
+#   git mesh whoami          this machine's node id
+#   git mesh init <name>     initiate a repository, print its mesh:// URL
+#
+# It runs the release's own ERTS with nothing started but what the command
+# starts. stdout carries only the answer (so `git clone "$(git mesh init x)"'
+# works); every log line goes to stderr.
+#
+# `init' needs the same environment as git-remote-mesh (see git_remote_macula):
+#   MACULA_STATION_SEEDS, MACULA_STATION_NODE_IDS, MCL_GIT_REALM_KEY
+# and both use this machine's one stored macula identity.
+set -eu
+SELF=$(readlink -f "$0")
+ROOT=$(dirname "$(dirname "$SELF")")
+VSN=$(cut -d' ' -f2 "$ROOT/releases/start_erl.data")
+ERTS_VSN=$(cut -d' ' -f1 "$ROOT/releases/start_erl.data")
+BINDIR="$ROOT/erts-$ERTS_VSN/bin"
+export ROOTDIR="$ROOT" BINDIR EMU=beam PROGNAME=git-mesh
+exec "$BINDIR/erlexec" -noshell -boot "$ROOT/releases/$VSN/start_clean" \
+    -pa "$ROOT"/lib/*/ebin \
+    -macula crypto_profile pq_hybrid \
+    -kernel logger_level warning \
+    -kernel logger '[{handler,default,logger_std_h,#{config=>#{type=>standard_error}}}]' \
+    -run git_mesh main -extra "$@"

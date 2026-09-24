@@ -4,7 +4,7 @@
 %% with MCL_GIT_REMOTE_TRANSPORT=git_remote_loopback.
 -module(git_remote_loopback).
 
--export([connect/1, call/3]).
+-export([connect/1, call/3, initiate/2]).
 
 connect(_Url) -> {ok, loopback}.
 
@@ -14,6 +14,12 @@ call(loopback, <<"mcl-git/receive_pack">>, #{repo_id := Id, advertise := 1}) ->
     run(["receive-pack", "--stateless-rpc", "--advertise-refs", dir(Id)], <<>>, []);
 call(loopback, <<"mcl-git/receive_pack">>, #{repo_id := Id, stdin := In}) ->
     run(["receive-pack", "--stateless-rpc", dir(Id)], In, []).
+
+%% A new bare repository under a minted id, as mcl-git's initiate_repo does.
+initiate(loopback, #{name := _}) ->
+    Id = <<"repo-", (binary:encode_hex(crypto:strong_rand_bytes(16), lowercase))/binary>>,
+    {ok, _} = run(["init", "--quiet", "--bare", "--initial-branch=main", dir(Id)], <<>>, []),
+    {ok, Id}.
 
 dir(Id) -> filename:join(os:getenv("MCL_GIT_LOOPBACK_ROOT"), <<Id/binary, ".git">>).
 

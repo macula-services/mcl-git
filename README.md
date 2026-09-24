@@ -6,7 +6,8 @@ in between: the bytes travel through Macula stations on the post-quantum wire
 (macula 12).
 
 The server side is an mcl_om service. The client side is `git-remote-mesh`, a
-git remote helper shipped in the same release and image.
+git remote helper, and `git mesh`, which initiates repositories. Both ship in
+the same release and image.
 
 ## How it works
 
@@ -55,24 +56,69 @@ carries `repo_id`, `pusher`, `advanced_at` and the `advances` (ref, old oid, new
 oid). This fact is published by a process manager from the `refs_advanced_v1`
 domain event; its shape is a public contract.
 
-## Using it: git-remote-mesh
+## Using it: from zero to `git clone mesh://`
 
-Put the release's `bin/` on `PATH` (the image already does this), then set the
-environment the helper dials with:
+The release ships two git extensions in `bin/`, which the image puts on `PATH`:
+
+- `git-remote-mesh`: git runs it for `mesh://` URLs.
+- `git-mesh`: git runs it for `git mesh <command>`.
+
+Everything below also runs inside the image:
+`podman run --rm -it --network host -v mesh-identity:/app/.local/share/macula ghcr.io/macula-services/mcl-git sh`.
+
+**1. Point at the mesh.** Name a station and pin its node id, and give the
+realm's public signing key. `git mesh init`, `clone`, `fetch` and `push` all
+read these:
 
 ```sh
-export MACULA_STATION_SEEDS=station-fi-helsinki.macula.io      # host[:port],...
-export MACULA_STATION_NODE_IDS=<64-hex node id of that station>  # index for index
+export MACULA_STATION_SEEDS=station-de-nuremberg.macula.io       # host[:port],...
+export MACULA_STATION_NODE_IDS=<64-hex node id of that station>    # index for index
 export MCL_GIT_REALM_KEY=<hex of the realm's public signing key>
-
-git clone mesh://io.macula/repo-0190…
-git push origin main
 ```
 
-The helper uses this machine's **one stored macula identity** (macula's
-`node_identity_path`, `~/.local/share/macula/identity.key` by default). That node
-id is who owns the repositories you initiate and who may push to them, so keep
-it. A container that runs the helper needs that file on a volume.
+**2. Find out who you are.**
+
+```sh
+$ git mesh whoami
+00a8209871372d2a4a919990ad915b7c3ac6ba92b9f288071d6382af5a838788
+```
+
+This is this machine's **one stored macula identity**
+(`~/.local/share/macula/identity.key`, made on first use). It owns every
+repository you initiate, and it is the only node that may push to them. Keep
+it. Inside a container, that path needs a volume, as in the command above.
+
+**3. Be allowed to initiate.** The operator of the mcl-git you use adds your
+node id to its `MCL_GIT_INITIATORS`. Until they do, `git mesh init` says so
+and names your id.
+
+**4. Initiate a repository.** The URL is the only thing printed on stdout:
+
+```sh
+$ git mesh init dotfiles --public --description "my config"
+mesh://io.macula/repo-01a0d10a3252792ca66ca340b0c1676f
+```
+
+Options: `--public` (the default is private), `--description <text>`,
+`--default-branch <branch>` (default `main`), and `--realm <realm-name>`
+(default `io.macula`).
+
+**5. Clone, commit, push, and clone again anywhere.**
+
+```sh
+git clone mesh://io.macula/repo-01a0d10a3252792ca66ca340b0c1676f dotfiles
+cd dotfiles
+echo "hello over the mesh" > README
+git add README && git commit -m "first commit"
+git push origin HEAD:main
+
+git clone mesh://io.macula/repo-01a0d10a3252792ca66ca340b0c1676f elsewhere
+```
+
+A private repository clones only for its owner. A public one clones for anyone
+on the mesh; only the owner may push to either.
+
+Or in one line: `git clone "$(git mesh init scratch)"`.
 
 ## Running the service
 
@@ -94,7 +140,7 @@ can be called.
 | `query_repos` | QRY | the three lookups |
 | `serve_git_over_mesh` | | bare repositories on disk, `upload_pack` and `receive_pack` |
 | `git_wire` | | the git smart protocol as both ends speak it: pkt-line, v2 ls-refs and fetch, receive-pack, and running git without a shell |
-| `git_remote_mesh` | | the remote helper (client), loaded in the release, run by `bin/git-remote-mesh` |
+| `git_remote_mesh` | | the client, loaded in the release: the remote helper (`bin/git-remote-mesh`) and `git mesh` (`bin/git-mesh`: whoami, init) |
 | `mcl_git` | | the mcl_om service: the nine procedures, the store, `/health` |
 
 ## Limits

@@ -12,9 +12,9 @@
 %% repository and who may push to it, so it must be the same on every run.
 -module(git_remote_macula).
 
--export([connect/1, call/3]).
+-export([connect/1, call/3, initiate/2]).
 %% The pieces with no network in them, exported for their tests.
--export([seeds/0, realm_key/0, reply/1]).
+-export([seeds/0, realm_key/0, reply/1, repo_id/1]).
 
 -define(CALL_TIMEOUT_MS, 300000).
 -define(HEALTHY_WAIT_MS, 30000).
@@ -58,6 +58,23 @@ reply({ok, #{<<"stdout">> := Out}})         -> {ok, #{stdout => Out}};
 reply({ok, #{stdout := Out}})               -> {ok, #{stdout => Out}};
 reply({ok, Other})                          -> {error, {unexpected_reply, Other}};
 reply({error, _} = Err)                     -> Err.
+
+%% @doc mcl-git/initiate_repo as this machine's node: its answer is the
+%% minted repo id.
+-spec initiate({pid(), binary()}, map()) -> {ok, binary()} | {error, term()}.
+initiate({Pool, Realm}, Params) ->
+    repo_id(macula:call(Pool, Realm, <<"mcl-git/initiate_repo">>,
+                        maps:map(fun(_K, V) -> {text, V} end, Params), 60000)).
+
+%% @doc The repo id out of initiate_repo's reply, as macula 12 carries it
+%% (CBOR text key and value).
+-spec repo_id({ok, term()} | {error, term()}) -> {ok, binary()} | {error, term()}.
+repo_id({ok, #{{text, <<"repo_id">>} := {text, Id}}}) -> {ok, Id};
+repo_id({ok, #{{text, <<"repo_id">>} := Id}}) when is_binary(Id) -> {ok, Id};
+repo_id({ok, #{repo_id := {text, Id}}}) -> {ok, Id};
+repo_id({ok, #{repo_id := Id}}) when is_binary(Id) -> {ok, Id};
+repo_id({ok, Other}) -> {error, {unexpected_reply, Other}};
+repo_id({error, _} = Err) -> Err.
 
 %% The repo id is text on the wire; the git bytes stay bytes.
 wire(#{repo_id := Id} = Payload) -> Payload#{repo_id => {text, Id}}.
