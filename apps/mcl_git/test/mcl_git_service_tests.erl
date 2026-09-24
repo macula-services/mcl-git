@@ -69,7 +69,12 @@ the_git_procedures_wait_for_git_test() ->
 the_mcl_om_that_carries_handler_timeouts_is_required_test() ->
     Config = read("rebar.config"),
     ?assertNotEqual(nomatch, binary:match(Config, <<"{mcl_om, \"~> 0.28\"}">>)),
-    ?assertNotEqual(nomatch, binary:match(Config, <<"{macula, \"~> 12.2\"}">>)).
+    %% 12.2.1: a handler's own refusal reaches the caller as handler_error
+    %% with its reason (macula#28); 12.2.0 sent it as unknown_error.
+    ?assertNotEqual(nomatch, binary:match(Config, <<"{macula, \">= 12.2.1 and < 13.0.0\"}">>)),
+    _ = application:load(macula),
+    {ok, Vsn} = application:get_key(macula, vsn),
+    ?assert(lists:map(fun list_to_integer/1, string:lexemes(Vsn, ".")) >= [12, 2, 1]).
 
 behaviours(M) ->
     lists:append([B || {behaviour, B} <- M:module_info(attributes)]).

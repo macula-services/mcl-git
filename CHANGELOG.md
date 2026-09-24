@@ -7,6 +7,9 @@ Versioning: [SemVer](https://semver.org/).
 
 ### Changed
 
+- macula `>= 12.2.1`: a procedure's own refusal (`not_owner`, `not_found`,
+  `not_an_initiator`, ...) reaches the caller as `handler_error` with its
+  reason (macula#28); under 12.2.0 it arrived as `unknown_error`.
 - mcl_om `~> 0.28`, macula `~> 12.2`. `upload_pack` and `receive_pack` declare
   `handler_timeout_ms` 300000, so a git run may take 270 s (was 25 s, under
   macula's fixed 30 s). The helper waits 330 s.
